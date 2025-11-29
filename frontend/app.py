@@ -241,7 +241,7 @@ def doctor_dashboard():
                         files=files,
                         data=data,
                         headers=headers,
-                        timeout=20
+                        timeout=60
                     )
 
                     if res.status_code == 200:
