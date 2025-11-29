@@ -94,10 +94,13 @@ def register_user(
         raise HTTPException(status_code=400, detail="Username already registered")
 
     # ✅ TC1 SECURITY FIX: bcrypt 72-byte safe handling
-    raw_password = form_data.password
-    safe_password = raw_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+    # raw_password = form_data.password
+    # safe_password = raw_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
 
-    hashed_password = pwd_context.hash(safe_password)
+    # hashed_password = pwd_context.hash(safe_password)
+
+    hashed_password = pwd_context.hash(form_data.password)
+
 
     new_user = models.User(
         username=form_data.username,
@@ -119,10 +122,10 @@ def login_for_access_token(
 ):
     user = db.query(models.User).filter(models.User.username == form_data.username).first()
 
-    raw_password = form_data.password
-    safe_password = raw_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+    # raw_password = form_data.password
+    # safe_password = raw_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
 
-    if not user or not pwd_context.verify(safe_password, user.password_hash):
+    if not user or not pwd_context.verify(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password"
