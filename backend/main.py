@@ -12,7 +12,13 @@ from tensorflow.keras.models import load_model
 from . import models, database
 
 # --- CONFIGURATION ---
-MODEL_PATH = r"C:\Users\manav\Downloads\Parkinson-s-Disease-Classifier-master\Parkinson-s-Disease-Classifier-master\model\parkinsons_detector.model"
+# MODEL_PATH = r"C:\Users\manav\Downloads\Parkinson-s-Disease-Classifier-master\Parkinson-s-Disease-Classifier-master\model\parkinsons_detector.model"
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, "model", "parkinsons_detector.model")
+
+
 CLASSES = ["Healthy", "Parkinson"]
 SECRET_KEY = "my_super_secret_key_for_final_year_project"
 ALGORITHM = "HS256"

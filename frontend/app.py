@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 
-BACKEND_URL = "http://127.0.0.1:8000"
+BACKEND_URL = "https://parkinson-project-1.onrender.com"
 st.set_page_config(page_title="Parkinson's AI System", page_icon="🧠")
 
 if 'token' not in st.session_state:

@@ -14,6 +14,7 @@ from tensorflow.keras.layers import AveragePooling2D, Dropout, Flatten, Dense, I
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
+import os 
 
 # --- CONFIGURATION ---
 # UPDATE THIS PATH to match the folder name you uploaded
@@ -141,6 +142,10 @@ if __name__ == "__main__":
 
     # 7. Save Model and Plot
     print("[INFO] saving model...")
-    model.save("parkinsons_detector.model")
+    # model.save("parkinsons_detector.model")
+
+    os.makedirs("model", exist_ok=True)
+    model.save("model/parkinsons_detector.model")
+
     plot_history(H, EPOCHS)
     print("Done! Check 'parkinsons_detector.model' and 'plot.png' in your project folder.")
