@@ -10,13 +10,14 @@ import numpy as np
 import cv2
 from tensorflow.keras.models import load_model
 from . import models, database
+import tensorflow as tf
 
 # --- CONFIGURATION ---
 # MODEL_PATH = r"C:\Users\manav\Downloads\Parkinson-s-Disease-Classifier-master\Parkinson-s-Disease-Classifier-master\model\parkinsons_detector.model"
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "model", "parkinsons_detector.model")
+MODEL_PATH = os.path.join(BASE_DIR, "model", "parkinsons_detector.keras")
 
 
 CLASSES = ["Healthy", "Parkinson"]
@@ -71,7 +72,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 def load_ai_model():
     global model
     try:
-        model = load_model(MODEL_PATH)
+        # model = load_model(MODEL_PATH)
+        model = tf.keras.models.load_model(MODEL_PATH)
+
         print("[INFO] Model loaded successfully!")
     except Exception as e:
         print(f"[ERROR] Could not load model: {e}")
