@@ -1,6 +1,5 @@
 fastapi
 uvicorn
-passlib[bcrypt]
 python-jose
 python-multipart
 sqlalchemy
@@ -13,7 +12,9 @@ requests
 pandas
 numpy
 Pillow
-opencv-python
 python-dotenv
 tensorflow
 imutils
+opencv-python-headless
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
