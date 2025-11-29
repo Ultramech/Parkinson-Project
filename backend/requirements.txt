@@ -16,3 +16,4 @@ Pillow
 opencv-python
 python-dotenv
 tensorflow
+imutils
