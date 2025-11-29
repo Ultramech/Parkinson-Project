@@ -145,7 +145,10 @@ if __name__ == "__main__":
     # model.save("parkinsons_detector.model")
 
     os.makedirs("model", exist_ok=True)
-    model.save("model/parkinsons_detector.model")
+    # model.save("model/parkinsons_detector.model")
+
+    model.save("model/parkinsons_detector.keras")
+
 
     plot_history(H, EPOCHS)
     print("Done! Check 'parkinsons_detector.model' and 'plot.png' in your project folder.")
