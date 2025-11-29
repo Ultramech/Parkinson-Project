@@ -87,20 +87,22 @@ def load_ai_model():
 @app.post("/register")
 def register_user(
         form_data: OAuth2PasswordRequestForm = Depends(),
-        # REMOVED: role: str = Form("doctor"),
         db: Session = Depends(get_db)
 ):
     db_user = db.query(models.User).filter(models.User.username == form_data.username).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
 
-    hashed_password = pwd_context.hash(form_data.password)
+    # ✅ TC1 SECURITY FIX: bcrypt 72-byte safe handling
+    raw_password = form_data.password
+    safe_password = raw_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
 
-    # FORCE ROLE TO BE "doctor"
+    hashed_password = pwd_context.hash(safe_password)
+
     new_user = models.User(
         username=form_data.username,
         password_hash=hashed_password,
-        role="doctor"  # <--- Hardcoded Security
+        role="doctor"
     )
     db.add(new_user)
     db.commit()
@@ -109,15 +111,30 @@ def register_user(
     return {"message": "User created successfully"}
 
 
-@app.post("/token")
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == form_data.username).first()
-    if not user or not pwd_context.verify(form_data.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
 
-    # Include ROLE in the token so Frontend knows who logged in
+@app.post("/token")
+def login_for_access_token(
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        db: Session = Depends(get_db)
+):
+    user = db.query(models.User).filter(models.User.username == form_data.username).first()
+
+    raw_password = form_data.password
+    safe_password = raw_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+
+    if not user or not pwd_context.verify(safe_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
+        )
+
     access_token = create_access_token(data={"sub": user.username, "role": user.role})
-    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user.role
+    }
+
 
 
 # --- DOCTOR ROUTES ---

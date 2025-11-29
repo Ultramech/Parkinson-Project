@@ -179,6 +179,16 @@ def login_user(username, password):
 
 # ---------------- REGISTER ----------------
 def register_user(username, password):
+
+    # ✅ TC1 FRONTEND VALIDATION: bcrypt 72-char limit
+    if len(password) > 72:
+        st.error("Password too long. Maximum 72 characters allowed.")
+        return
+
+    if not is_valid_username(username):
+        st.error("Invalid username format.")
+        return
+
     try:
         data = {"username": username, "password": password}
         response = requests.post(f"{BACKEND_URL}/register", data=data)
