@@ -19,7 +19,8 @@ import os
 # --- CONFIGURATION ---
 # UPDATE THIS PATH to match the folder name you uploaded
 # For example, if your folder is named 'dataset', change this to 'dataset'
-DATASET_PATH = "dataset"
+DATASET_PATH = r"C:\Users\hp\OneDrive\Desktop\Parkinson-s-Disease-Classifier-master(Final)\Parkinson-s-Disease-Classifier-master\Parkinson-s-Disease-Classifier-master\dataset"
+
 INIT_LR = 1e-4
 EPOCHS = 50  # Reduced for testing; increase to 50 or 100 for final training
 BS = 8
