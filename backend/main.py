@@ -181,7 +181,6 @@ def get_prediction_history(current_user: models.User = Depends(get_current_user)
 #     db.commit()
 #     return {"patient": patient_name, "prediction": label, "confidence": round(confidence, 2)}
 
-
 @app.post("/predict")
 async def predict(
     patient_name: str = Form(...),
@@ -194,16 +193,28 @@ async def predict(
     import base64
     import os
     from dotenv import load_dotenv
+
+    # ---------------- GEMINI SETUP ----------------
     load_dotenv()
-    # ✅ Load Gemini API Key securely from environment
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    api_key = os.getenv("GEMINI_API_KEY")
 
-    # ✅ Read Image
+    if not api_key:
+        # If key is missing -> service unavailable, not 500
+        raise HTTPException(
+            status_code=503,
+            detail="Spiral validation service unavailable (missing API key)."
+        )
+
+    genai.configure(api_key=api_key)
+
+    # ---------------- READ IMAGE BYTES ----------------
     contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Empty file uploaded.")
 
-    # ✅ -------------------------------------------
-    # ✅ STEP 1: GEMINI SPIRAL VALIDATION
-    # ✅ -------------------------------------------
+    # ==================================================
+    # STEP 1: GEMINI – CHECK IF IMAGE IS A SPIRAL
+    # ==================================================
     try:
         image_b64 = base64.b64encode(contents).decode("utf-8")
 
@@ -222,37 +233,44 @@ async def predict(
         response = gemini_model.generate_content([
             prompt,
             {
-                "mime_type": file.content_type,
+                "mime_type": file.content_type or "image/jpeg",
                 "data": image_b64
             }
         ])
 
-        verdict = response.text.strip().upper()
+        # response.text may sometimes be None -> guard it
+        verdict_raw = getattr(response, "text", "") or ""
+        verdict = verdict_raw.strip().upper()
+
+        print("Gemini verdict:", verdict)  # Helpful for debugging logs
 
         if verdict != "SPIRAL":
+            # This is a controlled, expected error (400 – bad input)
             raise HTTPException(
                 status_code=400,
                 detail="Invalid image. Please upload a hand-drawn spiral image only."
             )
 
     except HTTPException:
+        # Re-raise our own HTTP errors unchanged
         raise
 
     except Exception as e:
-        print("Gemini Validation Error:", e)
+        # Any other Gemini / network / parsing error
+        print("Gemini Validation Error:", repr(e))
         raise HTTPException(
-            status_code=500,
-            detail="Spiral validation failed. Please try again."
+            status_code=503,
+            detail="Spiral validation failed. Please try again later."
         )
 
-    # ✅ -------------------------------------------
-    # ✅ STEP 2: RUN YOUR PARKINSON MODEL
-    # ✅ -------------------------------------------
+    # ==================================================
+    # STEP 2: RUN YOUR CNN PARKINSON MODEL
+    # ==================================================
     nparr = np.frombuffer(contents, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     if image is None:
-        raise HTTPException(status_code=400, detail="Invalid image file")
+        raise HTTPException(status_code=400, detail="Invalid image file (cannot decode).")
 
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, (224, 224))
@@ -264,9 +282,9 @@ async def predict(
     label = CLASSES[idx]
     confidence = float(preds[0][idx] * 100)
 
-    # ✅ -------------------------------------------
-    # ✅ STEP 3: SAVE TO DATABASE
-    # ✅ -------------------------------------------
+    # ==================================================
+    # STEP 3: SAVE RESULT IN DATABASE
+    # ==================================================
     db_record = models.Prediction(
         user_id=current_user.id,
         patient_name=patient_name,
@@ -279,9 +297,9 @@ async def predict(
     db.add(db_record)
     db.commit()
 
-    # ✅ -------------------------------------------
-    # ✅ STEP 4: SEND RESPONSE TO FRONTEND
-    # ✅ -------------------------------------------
+    # ==================================================
+    # STEP 4: RETURN TO FRONTEND
+    # ==================================================
     return {
         "patient": patient_name,
         "prediction": label,
