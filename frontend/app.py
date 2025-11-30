@@ -202,9 +202,120 @@ def register_user(username, password):
         st.error("Service unavailable, please try again later.")
 
 
-# ---------------- DOCTOR DASHBOARD ----------------
+# # ---------------- DOCTOR DASHBOARD ----------------
+# def doctor_dashboard():
+#     st.sidebar.title("Doctor Menu")
+#     if st.sidebar.button("Logout"):
+#         st.session_state.token = None
+#         st.session_state.role = None
+#         st.rerun()
+
+#     tab1, tab2 = st.tabs(["New Diagnosis", "Patient History"])
+#     headers = {"Authorization": f"Bearer {st.session_state.token}"}
+
+#     # ---------- TAB 1 : UPLOAD + ANALYZE ----------
+#     with tab1:
+#         st.header("New Diagnosis")
+
+#         p_name = st.text_input("Patient Name")
+#         p_age = st.number_input("Age", 0, 120)
+#         uploaded_file = st.file_uploader("Upload Spiral/Wave Image", type=["jpg", "png", "jpeg"])
+
+#         # ✅ TC2 Step 2
+#         if st.button("Analyze"):
+#             if uploaded_file is None:
+#                 st.error("Please upload an image.")
+#                 return
+
+#             if uploaded_file.size > 10 * 1024 * 1024:
+#                 st.error("File size too large. Please upload a smaller image.")  # ✅ TC2 Step 7
+#                 return
+
+#             files = {"file": (uploaded_file.name, uploaded_file, uploaded_file.type)}
+#             data = {"patient_name": p_name, "patient_age": p_age}
+
+#     #         with st.spinner("Processing..."):   # ✅ TC3 Step 2
+#     #             try:
+#     #                 res = requests.post(
+#     #                     f"{BACKEND_URL}/predict",
+#     #                     files=files,
+#     #                     data=data,
+#     #                     headers=headers,
+#     #                     timeout=60
+#     #                 )
+
+#     #                 if res.status_code == 200:
+#     #                     r = res.json()
+#     #                     st.success(f"Prediction: {r['prediction']}")
+#     #                     st.info(f"Confidence: {r['confidence']} %")  # ✅ TC3 Step 3
+
+#     #                 elif res.status_code == 404:
+#     #                     st.error("Model not found. Contact administrator.")  # ✅ TC3 Step 6
+
+#     #                 elif res.status_code == 500:
+#     #                     st.error("Prediction failed. Try again later.")  # ✅ TC3 Step 7
+
+#     #                 else:
+#     #                     st.error("Server unavailable. Please try again later.")  # ✅ TC2 Step 8
+
+#     #             except requests.exceptions.Timeout:
+#     #                 st.error("Request timed out. Please retry.")  # ✅ TC3 Step 8
+
+#     #             except:
+#     #                 st.error("Server unavailable. Please try again later.")
+
+#     # # ---------- TAB 2 : HISTORY ----------
+#     # with tab2:
+#     #     st.header("Prediction History")
+
+#     #     try:
+#     #         res = requests.get(f"{BACKEND_URL}/history", headers=headers)
+#     #         if res.status_code == 200:
+#     #             st.dataframe(pd.DataFrame(res.json()))
+#     #     except:
+#     #         st.error("Unable to fetch history.")
+
+#             with st.spinner("Processing..."):
+#                 try:
+#                     res = requests.post(
+#                         f"{BACKEND_URL}/predict",
+#                         files=files,
+#                         data=data,
+#                         headers=headers,
+#                         timeout=60
+#                     )
+
+#                     if res.status_code == 200:
+#                         r = res.json()
+#                         st.success(f"Prediction: {r['prediction']}")
+#                         st.info(f"Confidence: {r['confidence']} %")
+
+#                     elif res.status_code == 400:
+#                         msg = res.json().get("detail", "Invalid input.")
+#                         st.error(msg)   # ✅ Handles NOT_SPIRAL properly
+
+#                     elif res.status_code == 503:
+#                         st.error("Spiral verification service unavailable. Try again later.")
+
+#                     elif res.status_code == 500:
+#                         st.error("Prediction failed. Try again later.")
+
+#                     else:
+#                         st.error("Server error. Please try again later.")
+
+#                 except requests.exceptions.Timeout:
+#                     st.error("Request timed out. Please retry.")
+
+#                 except requests.exceptions.ConnectionError:
+#                     st.error("Server is offline.")
+
+#                 except Exception as e:
+#                     st.error("Unexpected error occurred.")
+
+
 def doctor_dashboard():
     st.sidebar.title("Doctor Menu")
+
     if st.sidebar.button("Logout"):
         st.session_state.token = None
         st.session_state.role = None
@@ -213,28 +324,39 @@ def doctor_dashboard():
     tab1, tab2 = st.tabs(["New Diagnosis", "Patient History"])
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
 
-    # ---------- TAB 1 : UPLOAD + ANALYZE ----------
+    # =================== TAB 1 : NEW DIAGNOSIS ===================
     with tab1:
         st.header("New Diagnosis")
 
         p_name = st.text_input("Patient Name")
         p_age = st.number_input("Age", 0, 120)
-        uploaded_file = st.file_uploader("Upload Spiral/Wave Image", type=["jpg", "png", "jpeg"])
+        uploaded_file = st.file_uploader(
+            "Upload Spiral/Wave Image", type=["jpg", "png", "jpeg"]
+        )
 
-        # ✅ TC2 Step 2
         if st.button("Analyze"):
+
+            # ✅ VALIDATIONS
+            if not p_name.strip():
+                st.error("Patient name is required.")
+                return
+
+            if p_age <= 0:
+                st.error("Please enter a valid age.")
+                return
+
             if uploaded_file is None:
                 st.error("Please upload an image.")
                 return
 
             if uploaded_file.size > 10 * 1024 * 1024:
-                st.error("File size too large. Please upload a smaller image.")  # ✅ TC2 Step 7
+                st.error("File size too large. Please upload a smaller image.")
                 return
 
             files = {"file": (uploaded_file.name, uploaded_file, uploaded_file.type)}
             data = {"patient_name": p_name, "patient_age": p_age}
 
-            with st.spinner("Processing..."):   # ✅ TC3 Step 2
+            with st.spinner("Processing..."):
                 try:
                     res = requests.post(
                         f"{BACKEND_URL}/predict",
@@ -247,33 +369,58 @@ def doctor_dashboard():
                     if res.status_code == 200:
                         r = res.json()
                         st.success(f"Prediction: {r['prediction']}")
-                        st.info(f"Confidence: {r['confidence']} %")  # ✅ TC3 Step 3
+                        st.info(f"Confidence: {r['confidence']} %")
 
-                    elif res.status_code == 404:
-                        st.error("Model not found. Contact administrator.")  # ✅ TC3 Step 6
+                    elif res.status_code == 400:
+                        msg = res.json().get("detail", "Invalid image.")
+                        st.error(msg)   # ✅ Non-spiral image handled here
+
+                    elif res.status_code == 401:
+                        st.error("Session expired. Please login again.")
+                        st.session_state.token = None
+                        st.session_state.role = None
+                        st.rerun()
+
+                    elif res.status_code == 503:
+                        st.error("Spiral verification service unavailable. Try again later.")
 
                     elif res.status_code == 500:
-                        st.error("Prediction failed. Try again later.")  # ✅ TC3 Step 7
+                        st.error("Prediction failed. Try again later.")
 
                     else:
-                        st.error("Server unavailable. Please try again later.")  # ✅ TC2 Step 8
+                        st.error("Server error. Please try again later.")
 
                 except requests.exceptions.Timeout:
-                    st.error("Request timed out. Please retry.")  # ✅ TC3 Step 8
+                    st.error("Request timed out. Please retry.")
 
-                except:
-                    st.error("Server unavailable. Please try again later.")
+                except requests.exceptions.ConnectionError:
+                    st.error("Server is offline.")
 
-    # ---------- TAB 2 : HISTORY ----------
+                except Exception:
+                    st.error("Unexpected error occurred.")
+
+    # =================== TAB 2 : HISTORY ===================
     with tab2:
         st.header("Prediction History")
 
         try:
             res = requests.get(f"{BACKEND_URL}/history", headers=headers)
+
             if res.status_code == 200:
-                st.dataframe(pd.DataFrame(res.json()))
-        except:
-            st.error("Unable to fetch history.")
+                df = pd.DataFrame(res.json())
+
+                if len(df) > 0:
+                    df = df[["patient_name", "patient_age", "label", "confidence", "created_at"]]
+                    df.columns = ["Name", "Age", "Diagnosis", "Confidence", "Date"]
+                    st.dataframe(df, use_container_width=True)
+                else:
+                    st.info("No prediction history found.")
+
+            else:
+                st.error("Failed to fetch history.")
+
+        except Exception:
+            st.error("Unable to fetch history. Server unavailable.")
 
 
 # ---------------- ADMIN DASHBOARD ----------------

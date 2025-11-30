@@ -147,17 +147,113 @@ def get_prediction_history(current_user: models.User = Depends(get_current_user)
     return current_user.predictions
 
 
+# @app.post("/predict")
+# async def predict(
+#         patient_name: str = Form(...),
+#         patient_age: int = Form(...),
+#         file: UploadFile = File(...),
+#         current_user: models.User = Depends(get_current_user),
+#         db: Session = Depends(get_db)
+# ):
+
+#     contents = await file.read()
+#     nparr = np.frombuffer(contents, np.uint8)
+#     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+#     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+#     image = cv2.resize(image, (224, 224))
+#     image = image.astype("float32") / 255.0
+#     image = np.expand_dims(image, axis=0)
+
+#     preds = model.predict(image)
+#     idx = np.argmax(preds, axis=1)[0]
+#     label = CLASSES[idx]
+#     confidence = float(preds[0][idx] * 100)
+
+#     db_record = models.Prediction(
+#         user_id=current_user.id,
+#         patient_name=patient_name,
+#         patient_age=patient_age,
+#         filename=file.filename,
+#         label=label,
+#         confidence=confidence
+#     )
+#     db.add(db_record)
+#     db.commit()
+#     return {"patient": patient_name, "prediction": label, "confidence": round(confidence, 2)}
+
+
 @app.post("/predict")
 async def predict(
-        patient_name: str = Form(...),
-        patient_age: int = Form(...),
-        file: UploadFile = File(...),
-        current_user: models.User = Depends(get_current_user),
-        db: Session = Depends(get_db)
+    patient_name: str = Form(...),
+    patient_age: int = Form(...),
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
+    import google.generativeai as genai
+    import base64
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    # ✅ Load Gemini API Key securely from environment
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+    # ✅ Read Image
     contents = await file.read()
+
+    # ✅ -------------------------------------------
+    # ✅ STEP 1: GEMINI SPIRAL VALIDATION
+    # ✅ -------------------------------------------
+    try:
+        image_b64 = base64.b64encode(contents).decode("utf-8")
+
+        gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+
+        prompt = """
+        You are a medical image validator.
+        Determine if this image is a HAND-DRAWN SPIRAL used for Parkinson's testing.
+
+        Reply ONLY with:
+        SPIRAL
+        or
+        NOT_SPIRAL
+        """
+
+        response = gemini_model.generate_content([
+            prompt,
+            {
+                "mime_type": "image/jpeg",
+                "data": image_b64
+            }
+        ])
+
+        verdict = response.text.strip().upper()
+
+        if verdict != "SPIRAL":
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid image. Please upload a hand-drawn spiral image only."
+            )
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        print("Gemini Validation Error:", e)
+        raise HTTPException(
+            status_code=500,
+            detail="Spiral validation failed. Please try again."
+        )
+
+    # ✅ -------------------------------------------
+    # ✅ STEP 2: RUN YOUR PARKINSON MODEL
+    # ✅ -------------------------------------------
     nparr = np.frombuffer(contents, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    if image is None:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, (224, 224))
     image = image.astype("float32") / 255.0
@@ -168,6 +264,9 @@ async def predict(
     label = CLASSES[idx]
     confidence = float(preds[0][idx] * 100)
 
+    # ✅ -------------------------------------------
+    # ✅ STEP 3: SAVE TO DATABASE
+    # ✅ -------------------------------------------
     db_record = models.Prediction(
         user_id=current_user.id,
         patient_name=patient_name,
@@ -176,10 +275,19 @@ async def predict(
         label=label,
         confidence=confidence
     )
+
     db.add(db_record)
     db.commit()
-    return {"patient": patient_name, "prediction": label, "confidence": round(confidence, 2)}
 
+    # ✅ -------------------------------------------
+    # ✅ STEP 4: SEND RESPONSE TO FRONTEND
+    # ✅ -------------------------------------------
+    return {
+        "patient": patient_name,
+        "prediction": label,
+        "confidence": round(confidence, 2),
+        "status": "success"
+    }
 
 # --- NEW ADMIN ROUTES ---
 
