@@ -382,7 +382,7 @@ def doctor_dashboard():
                         st.rerun()
 
                     elif res.status_code == 503:
-                        st.error("Spiral verification service unavailable. Try again later.")
+                        st.error("Spiral verification service unavailable. Try again later!.")
 
                     elif res.status_code == 500:
                         st.error("Prediction failed. Try again later.")
