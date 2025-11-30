@@ -222,7 +222,7 @@ async def predict(
         response = gemini_model.generate_content([
             prompt,
             {
-                "mime_type": "image/jpeg",
+                "mime_type": file.content_type,
                 "data": image_b64
             }
         ])
