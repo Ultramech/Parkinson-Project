@@ -218,7 +218,7 @@ async def predict(
     try:
         image_b64 = base64.b64encode(contents).decode("utf-8")
 
-        gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+        gemini_model = genai.GenerativeModel("models/gemini-pro-vision")
 
         prompt = """
         You are a medical image validator.
